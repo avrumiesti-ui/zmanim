@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile</title>
+    <title>Zmanim Mobile v3</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -54,6 +54,13 @@
         .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
         .glossary-content strong:first-child { margin-top: 0; }
 
+        /* --- DISCLAIMER --- */
+        .disclaimer { 
+            text-align: center; font-size: 11px; color: #a0aec0; padding: 20px 15px; 
+            margin-top: 20px; border-top: 1px solid var(--border); line-height: 1.5; 
+        }
+        .disclaimer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+
         /* --- MODALS --- */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
@@ -69,6 +76,7 @@
             .zman-card { page-break-inside: avoid; border: 1px solid #000; margin-bottom: 5px; box-shadow: none; }
             .glossary-section details { page-break-inside: avoid; border: 1px solid #000; display: block !important; }
             .glossary-content { display: block !important; }
+            .disclaimer { display: block; border-top: 1px solid #000; color: #000; }
         }
     </style>
 </head>
@@ -109,6 +117,11 @@
 <h3 style="padding: 0 15px; margin: 20px 0 10px 0; color: #718096; font-size: 12px; text-transform: uppercase;">Dictionary & Settings</h3>
 <div class="glossary-section" id="glossaryList"></div>
 
+<div class="disclaimer">
+    This is a work in progress based on the <a href="https://kosherjava.com" target="_blank">KosherJava</a> database and calculations.<br>
+    We do not take responsibility for the accuracy of these times. Please see their website for details.
+</div>
+
 <div class="modal" id="locModal">
     <div class="modal-card">
         <h2>Change Location</h2>
@@ -133,7 +146,7 @@
     let currentDate = new Date();
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
     
-    // Default Options (Key must match Config ID)
+    // Default Options
     const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', tzais:'8.5', shaa:'gra', sunset:'elev' };
 
     // --- ENGINES ---
@@ -214,7 +227,7 @@
         }
     };
 
-    // --- CONFIG & RENDER ---
+    // --- RENDER LOGIC ---
     const zmanimConfig = [
         { id: "alot", label: "Alos Hashachar", desc: "Dawn. Beginning of fasts.", opts: [['16.1','16.1°'],['72','72m'],['90','90m']] },
         { id: "mish", label: "Misheyakir", desc: "Earliest Talis & Tefillin.", opts: [['10.2','10.2°'],['11','11°'],['11.5','11.5°']] },
@@ -286,7 +299,6 @@
                 else val = "--:--";
             }
             if(z.id === "tzais") {
-                // Fixed logic: sKey is guaranteed to be '8.5', '42', etc.
                 if(status.isShab) val = fmt(sKey==='8.5' ? data.tzais85 : setShkia+mins(parseInt(sKey)));
                 else val = fmt(sKey==='8.5' ? data.tzais85 : setShkia+mins(parseInt(sKey)));
             }
