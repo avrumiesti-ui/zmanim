@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zmanim Mobile</title>
     <style>
-        :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; --accent: #ebf8ff; }
+        :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; padding-bottom: 40px; }
         
@@ -23,7 +23,7 @@
         .civ-date { font-size: 14px; font-weight: 700; display: block; }
         .heb-date { font-size: 12px; color: #718096; display: block; }
 
-        /* --- INFO CARD (Daf/Day) --- */
+        /* --- INFO CARD --- */
         .info-bar { display: flex; gap: 10px; padding: 15px 15px 0 15px; }
         .info-pill { flex: 1; background: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #4a5568; }
         .info-pill span { display: block; font-size: 10px; color: #a0aec0; text-transform: uppercase; margin-bottom: 2px; }
@@ -41,15 +41,14 @@
         .zman-time { font-size: 20px; font-weight: 700; color: var(--primary); font-family: "SF Mono", monospace; letter-spacing: -0.5px; }
         .zman-time .sec { font-size: 12px; color: #a0aec0; }
         
-        /* Dropdown inside card */
         .card-select { display: block; margin-top: 4px; font-size: 10px; background: #edf2f7; border: none; padding: 2px 6px; border-radius: 4px; color: #4a5568; font-weight: 600; appearance: none; }
 
         /* --- GLOSSARY --- */
         .glossary-section { padding: 0 15px; }
         details { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; outline: none; }
         summary::-webkit-details-marker { display: none; }
-        summary::after { content: "+"; font-size: 16px; color: #718096; }
+        summary::after { content: "+"; font-size: 16px; color: #718096; font-weight: 400; }
         details[open] summary::after { content: "-"; }
         .glossary-content { padding: 15px; font-size: 13px; line-height: 1.5; color: #4a5568; border-top: 1px solid var(--border); }
         .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
@@ -64,8 +63,13 @@
         .modal-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; margin-top: 10px; }
         .close-btn { background: transparent; color: #718096; margin-top: 10px; }
 
-        /* Utility */
-        .hidden { display: none; }
+        @media print {
+            .sticky-header, .info-bar, .modal { display: none; }
+            .zmanim-list { padding: 0; }
+            .zman-card { page-break-inside: avoid; border: 1px solid #000; margin-bottom: 5px; box-shadow: none; }
+            .glossary-section details { page-break-inside: avoid; border: 1px solid #000; display: block !important; }
+            .glossary-content { display: block !important; }
+        }
     </style>
 </head>
 <body>
@@ -79,8 +83,8 @@
     <div class="date-nav">
         <button class="nav-btn" onclick="shiftDate(-1)">&#8249;</button>
         <div class="date-display" onclick="openDateModal()">
-            <span class="civ-date" id="displayCiv">Jan 1, 2026</span>
-            <span class="heb-date" id="displayHeb">12 Teves 5786</span>
+            <span class="civ-date" id="displayCiv"></span>
+            <span class="heb-date" id="displayHeb"></span>
         </div>
         <button class="nav-btn" onclick="shiftDate(1)">&#8250;</button>
     </div>
@@ -89,30 +93,27 @@
 <div class="info-bar">
     <div class="info-pill">
         <span>Day</span>
-        <div id="dayName">Tuesday</div>
+        <div id="dayName"></div>
     </div>
     <div class="info-pill">
         <span>Daf Yomi</span>
-        <div id="dafName">Berachos 2</div>
+        <div id="dafName"></div>
     </div>
 </div>
 <div id="specialDayBar" style="padding: 10px 15px 0 15px; display: none;">
-    <div class="info-pill special-pill" id="specialDayText">Chanukah</div>
+    <div class="info-pill special-pill" id="specialDayText"></div>
 </div>
 
-<ul class="zmanim-list" id="zmanimList">
-    </ul>
+<ul class="zmanim-list" id="zmanimList"></ul>
 
 <h3 style="padding: 0 15px; margin: 20px 0 10px 0; color: #718096; font-size: 12px; text-transform: uppercase;">Dictionary & Settings</h3>
-<div class="glossary-section" id="glossaryList">
-    </div>
+<div class="glossary-section" id="glossaryList"></div>
 
 <div class="modal" id="locModal">
     <div class="modal-card">
         <h2>Change Location</h2>
         <input type="text" id="citySearch" placeholder="Search City (e.g. Zurich)...">
         <button class="modal-btn" onclick="searchCity()">Search</button>
-        <div id="searchResults" style="margin-top:10px;"></div>
         <button class="modal-btn close-btn" onclick="closeLocModal()">Cancel</button>
     </div>
 </div>
@@ -132,10 +133,10 @@
     let currentDate = new Date();
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
     
-    // Default Options
-    const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', motz:'60', shaa:'gra', sunset:'elev' };
+    // Default Options (Key must match Config ID)
+    const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', tzais:'8.5', shaa:'gra', sunset:'elev' };
 
-    // --- ENGINES (Reused from v24) ---
+    // --- ENGINES ---
     const DafEngine = {
         masechtot: [{n:"Berachos",p:63},{n:"Shabbos",p:156},{n:"Eruvin",p:104},{n:"Pesachim",p:120},{n:"Shekalim",p:21},{n:"Yoma",p:87},{n:"Sukkah",p:55},{n:"Beitzah",p:39},{n:"Rosh Hashana",p:34},{n:"Taanis",p:30},{n:"Megillah",p:31},{n:"Moed Katan",p:28},{n:"Chagigah",p:26},{n:"Yevamos",p:121},{n:"Kesubos",p:111},{n:"Nedarim",p:90},{n:"Nazir",p:65},{n:"Sotah",p:48},{n:"Gittin",p:89},{n:"Kiddushin",p:81},{n:"Bava Kamma",p:118},{n:"Bava Metzia",p:118},{n:"Bava Basra",p:175},{n:"Sanhedrin",p:112},{n:"Makkos",p:23},{n:"Shevuos",p:48},{n:"Avodah Zarah",p:75},{n:"Horayos",p:13},{n:"Zevachim",p:119},{n:"Menachos",p:109},{n:"Chullin",p:141},{n:"Bechoros",p:60},{n:"Arachin",p:33},{n:"Temurah",p:33},{n:"Kerisus",p:27},{n:"Meilah",p:21},{n:"Kinnim",p:4},{n:"Tamid",p:9},{n:"Middos",p:4},{n:"Niddah",p:72}],
         get: (date) => {
@@ -160,15 +161,25 @@
             const d = parseInt(p.find(x=>x.type==='day').value);
             const m = HebCal.mapMonth(p.find(x=>x.type==='month').value);
             const dayOfWeek = date.getDay();
-            let st = { isFri: dayOfWeek===5, isShab: dayOfWeek===6, name: null };
+            let st = { isFri: dayOfWeek===5, isShab: dayOfWeek===6, name: null, isErev: false };
             if(d===1 || d===30) st.name = "Rosh Chodesh";
-            // Abbreviated Holiday Logic for Mobile
-            if(m==='Nisan' && d>=15 && d<=22) st.name = "Pesach";
-            if(m==='Tishrei' && d>=15 && d<=21) st.name = "Succos";
-            if(m==='Kislev' && d>=25) st.name = "Chanukah";
-            if(m==='Adar' && d===14) st.name = "Purim";
-            // ... (Full logic can be pasted here if needed)
+            if(m==='Nisan') { if(d==14) st.name="Erev Pesach"; if(d>=15 && d<=22) st.name=`Pesach Day ${d-14}`; }
+            else if(m==='Iyar' && d==18) st.name="Lag BaOmer";
+            else if(m==='Sivan') { if(d==5) st.name="Erev Shavuos"; if(d>=6 && d<=7) st.name=`Shavuos Day ${d-5}`; }
+            else if(m==='Tamuz' && d==17) st.name="Fast 17 Tamuz";
+            else if(m==='Av' && d==9) st.name="Tisha B'Av";
+            else if(m==='Elul' && d==29) st.name="Erev R. Hashana";
+            else if(m==='Tishrei') {
+                if(d<=2) st.name=`Rosh Hashana ${d}`; if(d==3) st.name="Tzom Gedalia"; if(d==9) st.name="Erev YK";
+                if(d==10) st.name="Yom Kippur"; if(d==14) st.name="Erev Succos"; if(d>=15 && d<=21) st.name=`Succos Day ${d-14}`;
+                if(d==22) st.name="Shmini Atzeres"; if(d==23) st.name="Simchas Torah";
+            }
+            else if(m==='Kislev' && d>=25) st.name=`Chanukah Day ${d-24}`;
+            else if(m==='Teves') { if(d<=3 && !st.name) st.name="Chanukah"; if(d==10) st.name="Asara B'Teves"; }
+            else if(m==='Shevat') { if(d==15) st.name="Tu B'Shevat"; }
+            else if(m.includes('Adar')) { if(d==13) st.name="Taanis Esther"; if(d==14) st.name="Purim"; }
             if(st.name === "Regular Day" && st.isShab) st.name = "Shabbos";
+            if(st.name && st.name.includes("Rosh Chodesh") && st.name.length > 12) st.name = "R.C. / " + st.name.replace("Rosh Chodesh","");
             return st;
         }
     };
@@ -203,7 +214,7 @@
         }
     };
 
-    // --- RENDER LOGIC ---
+    // --- CONFIG & RENDER ---
     const zmanimConfig = [
         { id: "alot", label: "Alos Hashachar", desc: "Dawn. Beginning of fasts.", opts: [['16.1','16.1°'],['72','72m'],['90','90m']] },
         { id: "mish", label: "Misheyakir", desc: "Earliest Talis & Tefillin.", opts: [['10.2','10.2°'],['11','11°'],['11.5','11.5°']] },
@@ -220,12 +231,10 @@
     ];
 
     function render() {
-        // 1. Calc Data
         const iso = currentDate.toISOString().split('T')[0];
         const data = Solar.calc(new Date(iso + "T12:00:00Z"), loc.lat, loc.lng, loc.elev);
         const status = HebCal.getStatus(currentDate);
         
-        // 2. Update Header
         document.getElementById('displayCiv').innerText = currentDate.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
         document.getElementById('displayHeb').innerText = HebCal.getHebrewStr(currentDate);
         document.getElementById('dayName').innerText = currentDate.toLocaleDateString('en-US', {weekday:'long'});
@@ -235,11 +244,8 @@
         if(status.name && status.name !== "Regular Day" && status.name !== "Shabbos") {
             sb.style.display = "block";
             document.getElementById('specialDayText').innerText = status.name;
-        } else {
-            sb.style.display = "none";
-        }
+        } else { sb.style.display = "none"; }
 
-        // 3. Helpers
         const fmt = (ms) => {
             if(!ms) return "--:--";
             const d = new Date(ms);
@@ -250,13 +256,11 @@
         const set = (opts.sunrise==='elev') ? data.sunElev.set : data.sunLevel.set;
         const setShkia = (opts.sunset==='elev') ? data.sunElev.set : data.sunLevel.set;
         
-        // 4. Build List
         let html = "";
         zmanimConfig.forEach(z => {
             let val = "";
             let sKey = opts[z.id];
 
-            // Calculations
             if(z.id === "alot") val = fmt(sKey==='16.1' ? data.alot16 : rise - mins(parseInt(sKey)));
             if(z.id === "mish") val = fmt(sKey==='10.2' ? data.mish10 : (sKey==='11' ? data.mish11 : data.mish115));
             if(z.id === "sunrise") val = fmt(rise);
@@ -282,7 +286,8 @@
                 else val = "--:--";
             }
             if(z.id === "tzais") {
-                if(status.isShab) val = fmt(sKey==='8.5' ? data.tzais85 : setShkia+mins(parseInt(sKey))); // Always use option for shabbos
+                // Fixed logic: sKey is guaranteed to be '8.5', '42', etc.
+                if(status.isShab) val = fmt(sKey==='8.5' ? data.tzais85 : setShkia+mins(parseInt(sKey)));
                 else val = fmt(sKey==='8.5' ? data.tzais85 : setShkia+mins(parseInt(sKey)));
             }
             if(z.id === "shaa") {
@@ -290,7 +295,6 @@
                 val = (ms/60000).toFixed(1) + "m";
             }
 
-            // Dropdown HTML
             let selectHTML = "";
             if(z.opts) {
                 selectHTML = `<select class="card-select" onchange="changeOption('${z.id}', this.value)">
@@ -310,8 +314,6 @@
             </li>`;
         });
         document.getElementById('zmanimList').innerHTML = html;
-
-        // Render Glossary
         renderGlossary();
     }
 
@@ -329,14 +331,13 @@
     }
 
     function getGlossaryDesc(id, optKey) {
-        // Simplified descriptions for mobile glossary
-        if(id.includes("shema") || id.includes("tefila")) return optKey==='gra' ? "Sunrise to Sunset" : "Dawn to Nightfall (Earlier)";
+        if(id.includes("shema") || id.includes("tefila")) return optKey==='gra' ? "Sunrise to Sunset" : "Dawn to Nightfall";
         if(id==="alot") return optKey==='16.1' ? "Sun 16.1° below horizon" : "Fixed minutes before sunrise";
-        if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Top of mountain (Visible)" : "Sea Level (Flat)";
+        if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Visible (Mountain)" : "Sea Level (Flat)";
+        if(id==="tzais") return optKey==='8.5' ? "Standard (3 Stars)" : `${optKey} mins after sunset`;
         return "";
     }
 
-    // --- ACTIONS ---
     function changeOption(key, val) { opts[key] = val; render(); }
     function shiftDate(d) { currentDate.setDate(currentDate.getDate() + d); render(); }
     function goToday() { currentDate = new Date(); document.getElementById('dateModal').classList.remove('active'); render(); }
@@ -344,13 +345,10 @@
         const v = document.getElementById('datePicker').value;
         if(v) { currentDate = new Date(v); document.getElementById('dateModal').classList.remove('active'); render(); }
     }
-
-    // Modals
     function openLocModal() { document.getElementById('locModal').classList.add('active'); }
     function closeLocModal() { document.getElementById('locModal').classList.remove('active'); }
     function openDateModal() { document.getElementById('datePicker').value = currentDate.toISOString().split('T')[0]; document.getElementById('dateModal').classList.add('active'); }
 
-    // Location
     async function searchCity() {
         const q = document.getElementById('citySearch').value;
         if(!q) return;
@@ -360,11 +358,9 @@
             if(data.results) {
                 const p = data.results[0];
                 loc = { lat: p.latitude, lng: p.longitude, elev: 0, tz: p.timezone || 'UTC', name: `${p.name}, ${p.country_code}` };
-                // Fetch elev
                 const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${loc.lat}&longitude=${loc.lng}`);
                 const elevData = await elevRes.json();
                 loc.elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-                
                 document.getElementById('locBtn').innerText = loc.name;
                 closeLocModal();
                 render();
@@ -372,7 +368,6 @@
         } catch(e) { alert("Error"); }
     }
 
-    // Init
     render();
 </script>
 
