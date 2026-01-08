@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile v5</title>
+    <title>Zmanim Mobile v6</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -34,9 +34,13 @@
         .zman-left { display: flex; flex-direction: column; gap: 2px; }
         .zman-label { font-size: 14px; font-weight: 700; color: #2d3748; }
         .zman-desc { font-size: 11px; color: #718096; }
-        .zman-right { text-align: right; }
+        .zman-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
         .zman-time { font-size: 20px; font-weight: 700; color: var(--primary); font-family: "SF Mono", monospace; letter-spacing: -0.5px; }
         .zman-time .sec { font-size: 12px; color: #a0aec0; }
+        
+        /* Shaa Zmanis specific style */
+        .sub-label { font-size: 9px; color: #a0aec0; font-weight: 600; text-transform: uppercase; margin-top: -2px; }
+
         .card-select { display: block; margin-top: 4px; font-size: 10px; background: #edf2f7; border: none; padding: 2px 6px; border-radius: 4px; color: #4a5568; font-weight: 600; appearance: none; }
 
         /* --- GLOSSARY --- */
@@ -44,6 +48,8 @@
         details { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
         summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
         .glossary-content { padding: 15px; font-size: 13px; line-height: 1.5; color: #4a5568; border-top: 1px solid var(--border); }
+        .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
+        .glossary-content strong:first-child { margin-top: 0; }
         .disclaimer { text-align: center; font-size: 11px; color: #a0aec0; padding: 20px 15px; margin-top: 20px; border-top: 1px solid var(--border); line-height: 1.5; }
         .disclaimer a { color: var(--primary); text-decoration: none; font-weight: 600; }
 
@@ -55,9 +61,8 @@
         .modal-input { width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
         .modal-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 5px; }
         .gps-btn { background: #48bb78; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .close-btn { background: transparent; color: #718096; margin-top: 5px; }
+        .close-btn { background: transparent; color: #718096; margin-top: 10px; }
 
-        /* SEARCH RESULTS */
         #searchResults { overflow-y: auto; margin-top: 10px; flex-grow: 1; border-top: 1px solid #eee; max-height: 300px; }
         .city-result { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; text-align: left; background: none; width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
         .city-result:hover { background: #f7fafc; }
@@ -197,7 +202,6 @@
             const n = Math.round(D - lng/360);
             const J_transit = 2451545.0 + 0.0009 + -lng/360 + n + 0.0053 * Math.sin(Solar.rad(357.5291 + 0.98560028 * (2451545.0 + 0.0009 + -lng/360 + n - 2451545))) - 0.0069 * Math.sin(Solar.rad(2 * L));
             const noonMs = (J_transit - 2440587.5) * 86400000;
-            
             const getEvent = (zenith) => {
                  const cosH = (Math.cos(Solar.rad(zenith)) - sinDec * Math.sin(Solar.rad(lat))) / (Math.cos(Math.asin(sinDec)) * Math.cos(Solar.rad(lat)));
                  if(cosH > 1 || cosH < -1) return null;
@@ -216,7 +220,7 @@
         }
     };
 
-    // --- RENDER LOGIC ---
+    // --- CONFIG ---
     const zmanimConfig = [
         { id: "alot", label: "Alos Hashachar", desc: "Dawn. Beginning of fasts.", opts: [['16.1','16.1°'],['72','72m'],['90','90m']] },
         { id: "mish", label: "Misheyakir", desc: "Earliest Talis & Tefillin.", opts: [['10.2','10.2°'],['11','11°'],['11.5','11.5°']] },
@@ -232,6 +236,116 @@
         { id: "shaa", label: "Shaa Zmanis", desc: "Length of 1 Halachic Hour.", opts: [['gra','Gra'],['mga','MGA']] }
     ];
 
+    // --- SEARCH LOGIC ---
+    async function searchCity() {
+        const query = document.getElementById('citySearchInput').value;
+        const resultDiv = document.getElementById('searchResults');
+        if(!query) return;
+        
+        resultDiv.innerHTML = '<div style="padding:10px; color:#718096;">Searching...</div>';
+        
+        let parts = query.split(/,| /).filter(s => s.trim() !== "");
+        let cityName = parts[0];
+        let filterRegion = parts.length > 1 ? parts.slice(1).join(" ").toLowerCase() : "";
+
+        try {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=20&language=en&format=json`);
+            const data = await res.json();
+            
+            if(!data.results || data.results.length === 0) {
+                resultDiv.innerHTML = '<div style="padding:10px; color:red;">No cities found.</div>';
+                return;
+            }
+            
+            let filteredResults = data.results;
+            // Exclude "East Jerusalem, PS"
+            filteredResults = filteredResults.filter(r => !(r.name === "East Jerusalem" && r.country_code === "PS"));
+
+            if(filterRegion) {
+                filteredResults = filteredResults.filter(r => {
+                    const admin = (r.admin1 || "").toLowerCase();
+                    const country = (r.country || "").toLowerCase();
+                    const code = (r.country_code || "").toLowerCase();
+                    return admin.includes(filterRegion) || country.includes(filterRegion) || code === filterRegion;
+                });
+                if(filteredResults.length === 0) filteredResults = data.results;
+            }
+
+            let html = '';
+            filteredResults.forEach(city => {
+                const admin = city.admin1 ? city.admin1 + ', ' : '';
+                const country = city.country || '';
+                const name = city.name;
+                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${name}, ${city.admin1_code || city.country_code}', '${city.timezone}')">
+                    <span class="city-main">${name}</span>
+                    <span class="city-sub">${admin}${country}</span>
+                </button>`;
+            });
+            resultDiv.innerHTML = html;
+            
+        } catch(e) {
+            resultDiv.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>';
+        }
+    }
+
+    async function selectCity(lat, lng, name, suffix, timezone) {
+        try {
+            const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+            const elevData = await elevRes.json();
+            const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
+            
+            const fullName = `${name}, ${suffix}`;
+            loc = { lat, lng, elev, tz: timezone, name: fullName };
+            
+            // Auto-Jerusalem logic
+            if(name.includes("Jerusalem") || name.includes("Yerushalayim")) {
+                opts.candles = '40';
+            } else {
+                opts.candles = '18';
+            }
+
+            document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
+            closeLocModal();
+            render();
+        } catch(e) { alert("Could not get elevation."); }
+    }
+
+    // --- GEOLOCATION ---
+    function getUserLocation() {
+        if(!navigator.geolocation) { alert("Geolocation not supported."); return; }
+        document.querySelector('.gps-btn').innerText = "Locating...";
+        
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            try {
+                // Reverse Geocode
+                const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10`);
+                const revData = await revRes.json();
+                const city = revData.address.city || revData.address.town || revData.address.village || "My Location";
+                const region = revData.address.state_code || revData.address.country_code.toUpperCase();
+                const displayName = `${city}, ${region}`;
+
+                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+                const elevData = await elevRes.json();
+                const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
+                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                loc = { lat, lng, elev, tz, name: displayName };
+                document.getElementById('locBtn').innerText = `${displayName} (${elev}m)`;
+                document.querySelector('.gps-btn').innerText = "📍 Use My Current Location";
+                
+                // Jerusalem check
+                if(city.includes("Jerusalem")) opts.candles = '40';
+                else opts.candles = '18';
+
+                closeLocModal();
+                render();
+            } catch(e) { alert("Error details."); }
+        }, (err) => { alert("Location denied."); });
+    }
+
+    // --- RENDER ---
     function render() {
         const iso = currentDate.toISOString().split('T')[0];
         const data = Solar.calc(new Date(iso + "T12:00:00Z"), loc.lat, loc.lng, loc.elev);
@@ -262,6 +376,7 @@
         zmanimConfig.forEach(z => {
             let val = "";
             let sKey = opts[z.id];
+            let sub = "";
 
             if(z.id === "alot") val = fmt(sKey==='16.1' ? data.alot16 : rise - mins(parseInt(sKey)));
             if(z.id === "mish") val = fmt(sKey==='10.2' ? data.mish10 : (sKey==='11' ? data.mish11 : data.mish115));
@@ -293,7 +408,8 @@
             }
             if(z.id === "shaa") {
                 let ms = sKey==='gra' ? (set-rise)/12 : (data.tzais16-data.alot16)/12;
-                val = (ms/60000).toFixed(1) + "m";
+                val = (ms/60000).toFixed(1);
+                sub = "minutes";
             }
 
             let selectHTML = "";
@@ -311,6 +427,7 @@
                 </div>
                 <div class="zman-right">
                     <span class="zman-time">${val}</span>
+                    ${sub ? `<span class="sub-label">${sub}</span>` : ''}
                 </div>
             </li>`;
         });
@@ -332,6 +449,19 @@
     }
 
     function getGlossaryDesc(id, optKey) {
+        if(id==="mish") {
+            if(optKey==='10.2') return "Standard opinion (10.2°).";
+            if(optKey==='11') return "Slightly earlier opinion (11°).";
+            if(optKey==='11.5') return "Earliest opinion (11.5°). Used when necessary.";
+        }
+        if(id==="plag") {
+            if(optKey==='gra') return "Standard. 1.25 hours before Sunset.";
+            if(optKey==='mga') return "Early. 1.25 MGA hours before Nightfall.";
+        }
+        if(id==="shaa") {
+            if(optKey==='gra') return "Standard Hour. (Sunset - Sunrise) / 12.";
+            if(optKey==='mga') return "Magen Avraham. (Tzais - Alos) / 12. Usually longer hours.";
+        }
         if(id.includes("shema") || id.includes("tefila")) return optKey==='gra' ? "Sunrise to Sunset" : "Dawn to Nightfall";
         if(id==="alot") return optKey==='16.1' ? "Sun 16.1° below horizon" : "Fixed minutes before sunrise";
         if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Visible (Mountain)" : "Sea Level (Flat)";
@@ -342,109 +472,10 @@
     function changeOption(key, val) { opts[key] = val; render(); }
     function shiftDate(d) { currentDate.setDate(currentDate.getDate() + d); render(); }
     function goToday() { currentDate = new Date(); document.getElementById('dateModal').classList.remove('active'); render(); }
-    function setDateFromPicker() { 
-        const v = document.getElementById('datePicker').value;
-        if(v) { currentDate = new Date(v); document.getElementById('dateModal').classList.remove('active'); render(); }
-    }
+    function setDateFromPicker() { const v = document.getElementById('datePicker').value; if(v) { currentDate = new Date(v); document.getElementById('dateModal').classList.remove('active'); render(); } }
     function openLocModal() { document.getElementById('locModal').classList.add('active'); }
     function closeLocModal() { document.getElementById('locModal').classList.remove('active'); }
     function openDateModal() { document.getElementById('datePicker').value = currentDate.toISOString().split('T')[0]; document.getElementById('dateModal').classList.add('active'); }
-
-    // --- SMART SEARCH & LOCATION ---
-    async function searchCity() {
-        const query = document.getElementById('citySearchInput').value;
-        const resultDiv = document.getElementById('searchResults');
-        if(!query) return;
-        
-        resultDiv.innerHTML = '<div style="padding:10px; color:#718096;">Searching...</div>';
-        
-        // 1. Split query: "Marlboro, NJ" -> "Marlboro" and "NJ"
-        let parts = query.split(/,| /).filter(s => s.trim() !== "");
-        let cityName = parts[0];
-        let filterRegion = parts.length > 1 ? parts.slice(1).join(" ").toLowerCase() : "";
-
-        try {
-            // 2. Search for the city name
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=20&language=en&format=json`);
-            const data = await res.json();
-            
-            if(!data.results || data.results.length === 0) {
-                resultDiv.innerHTML = '<div style="padding:10px; color:red;">No cities found.</div>';
-                return;
-            }
-            
-            // 3. Filter results if user provided extra info (like state or country)
-            let filteredResults = data.results;
-            if(filterRegion) {
-                filteredResults = data.results.filter(r => {
-                    const admin = (r.admin1 || "").toLowerCase();
-                    const country = (r.country || "").toLowerCase();
-                    const code = (r.country_code || "").toLowerCase();
-                    return admin.includes(filterRegion) || country.includes(filterRegion) || code === filterRegion;
-                });
-                // Fallback: If strict filtering removes everything, show original list
-                if(filteredResults.length === 0) filteredResults = data.results;
-            }
-
-            // 4. Render Results
-            let html = '';
-            filteredResults.forEach(city => {
-                const admin = city.admin1 ? city.admin1 + ', ' : '';
-                const country = city.country || '';
-                const name = city.name;
-                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${name}, ${city.admin1_code || city.country_code}', '${city.timezone}')">
-                    <span class="city-main">${name}</span>
-                    <span class="city-sub">${admin}${country}</span>
-                </button>`;
-            });
-            resultDiv.innerHTML = html;
-            
-        } catch(e) {
-            resultDiv.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>';
-        }
-    }
-
-    async function selectCity(lat, lng, name, timezone) {
-        try {
-            const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
-            const elevData = await elevRes.json();
-            const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-            
-            loc = { lat, lng, elev, tz: timezone, name };
-            document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
-            closeLocModal();
-            render();
-        } catch(e) { alert("Could not get elevation."); }
-    }
-
-    // --- GEOLOCATION ---
-    function getUserLocation() {
-        if(!navigator.geolocation) { alert("Geolocation not supported."); return; }
-        document.querySelector('.gps-btn').innerText = "Locating...";
-        
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            try {
-                // Get Elevation
-                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
-                const elevData = await elevRes.json();
-                const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-                
-                // Get Timezone/City Name (Reverse Geocoding optional, using Intl for TZ)
-                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                
-                loc = { lat, lng, elev, tz, name: "My Location" };
-                document.getElementById('locBtn').innerText = `My Location (${elev}m)`;
-                document.querySelector('.gps-btn').innerText = "📍 Use My Current Location";
-                closeLocModal();
-                render();
-            } catch(e) { alert("Error fetching location details"); }
-        }, (err) => {
-            alert("Location access denied or failed.");
-            document.querySelector('.gps-btn').innerText = "📍 Use My Current Location";
-        });
-    }
 
     // Init
     render();
