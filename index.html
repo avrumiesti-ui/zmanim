@@ -3,27 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile v3</title>
+    <title>Zmanim Mobile v4</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; padding-bottom: 40px; }
         
-        /* --- STICKY HEADER --- */
+        /* --- HEADER --- */
         .sticky-header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 10px 15px; border-bottom: 1px solid var(--border); }
-        
         .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .app-title { font-size: 18px; font-weight: 800; color: var(--primary); margin: 0; }
-        .loc-btn { font-size: 12px; color: #4a5568; background: #edf2f7; padding: 4px 8px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
+        /* LOCATION BUTTON */
+        .loc-btn { 
+            font-size: 12px; color: #4a5568; background: #edf2f7; 
+            padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); 
+            font-weight: 600; cursor: pointer; max-width: 200px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            display: flex; align-items: center; gap: 4px;
+        }
+        .loc-btn::before { content: "📍"; font-size: 10px; }
+        
+        /* DATE NAV */
         .date-nav { display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; border-radius: 8px; padding: 4px; }
         .nav-btn { width: 36px; height: 36px; border: none; background: #fff; border-radius: 6px; font-size: 18px; color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
-        .nav-btn:active { background: #e2e8f0; }
         .date-display { text-align: center; line-height: 1.2; flex-grow: 1; }
         .civ-date { font-size: 14px; font-weight: 700; display: block; }
         .heb-date { font-size: 12px; color: #718096; display: block; }
 
-        /* --- INFO CARD --- */
+        /* --- INFO BAR --- */
         .info-bar { display: flex; gap: 10px; padding: 15px 15px 0 15px; }
         .info-pill { flex: 1; background: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #4a5568; }
         .info-pill span { display: block; font-size: 10px; color: #a0aec0; text-transform: uppercase; margin-bottom: 2px; }
@@ -32,52 +40,40 @@
         /* --- ZMANIM LIST --- */
         .zmanim-list { list-style: none; padding: 15px; margin: 0; display: flex; flex-direction: column; gap: 10px; }
         .zman-card { background: var(--card); border-radius: 12px; padding: 12px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        
         .zman-left { display: flex; flex-direction: column; gap: 2px; }
         .zman-label { font-size: 14px; font-weight: 700; color: #2d3748; }
         .zman-desc { font-size: 11px; color: #718096; }
-        
         .zman-right { text-align: right; }
         .zman-time { font-size: 20px; font-weight: 700; color: var(--primary); font-family: "SF Mono", monospace; letter-spacing: -0.5px; }
         .zman-time .sec { font-size: 12px; color: #a0aec0; }
-        
         .card-select { display: block; margin-top: 4px; font-size: 10px; background: #edf2f7; border: none; padding: 2px 6px; border-radius: 4px; color: #4a5568; font-weight: 600; appearance: none; }
 
-        /* --- GLOSSARY --- */
+        /* --- GLOSSARY & FOOTER --- */
         .glossary-section { padding: 0 15px; }
         details { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; outline: none; }
-        summary::-webkit-details-marker { display: none; }
-        summary::after { content: "+"; font-size: 16px; color: #718096; font-weight: 400; }
-        details[open] summary::after { content: "-"; }
+        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
         .glossary-content { padding: 15px; font-size: 13px; line-height: 1.5; color: #4a5568; border-top: 1px solid var(--border); }
-        .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
-        .glossary-content strong:first-child { margin-top: 0; }
-
-        /* --- DISCLAIMER --- */
-        .disclaimer { 
-            text-align: center; font-size: 11px; color: #a0aec0; padding: 20px 15px; 
-            margin-top: 20px; border-top: 1px solid var(--border); line-height: 1.5; 
-        }
+        .disclaimer { text-align: center; font-size: 11px; color: #a0aec0; padding: 20px 15px; margin-top: 20px; border-top: 1px solid var(--border); line-height: 1.5; }
         .disclaimer a { color: var(--primary); text-decoration: none; font-weight: 600; }
 
         /* --- MODALS --- */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .modal-card h2 { margin-top: 0; font-size: 18px; }
-        .modal-card input { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px; margin: 10px 0; }
-        .modal-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; margin-top: 10px; }
+        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-card h2 { margin-top: 0; font-size: 18px; margin-bottom: 15px; }
+        .modal-input { width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
+        .modal-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
         .close-btn { background: transparent; color: #718096; margin-top: 10px; }
 
-        @media print {
-            .sticky-header, .info-bar, .modal { display: none; }
-            .zmanim-list { padding: 0; }
-            .zman-card { page-break-inside: avoid; border: 1px solid #000; margin-bottom: 5px; box-shadow: none; }
-            .glossary-section details { page-break-inside: avoid; border: 1px solid #000; display: block !important; }
-            .glossary-content { display: block !important; }
-            .disclaimer { display: block; border-top: 1px solid #000; color: #000; }
+        /* RESULT LIST */
+        #searchResults { overflow-y: auto; margin-top: 10px; flex-grow: 1; border-top: 1px solid #eee; }
+        .city-result { 
+            padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; text-align: left; background: none; width: 100%; 
+            display: flex; flex-direction: column; align-items: flex-start;
         }
+        .city-result:hover { background: #f7fafc; }
+        .city-main { font-weight: 700; font-size: 14px; color: #2d3748; }
+        .city-sub { font-size: 12px; color: #718096; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -85,7 +81,7 @@
 <div class="sticky-header">
     <div class="top-row">
         <h1 class="app-title">Zmanim Daily</h1>
-        <button class="loc-btn" onclick="openLocModal()" id="locBtn">Lakewood, NJ</button>
+        <button class="loc-btn" onclick="openLocModal()" id="locBtn">Lakewood, NJ (30m)</button>
     </div>
     
     <div class="date-nav">
@@ -118,25 +114,28 @@
 <div class="glossary-section" id="glossaryList"></div>
 
 <div class="disclaimer">
-    This is a work in progress based on the <a href="https://kosherjava.com" target="_blank">KosherJava</a> database and calculations.<br>
-    We do not take responsibility for the accuracy of these times. Please see their website for details.
+    This project uses algorithms based on the <a href="https://kosherjava.com" target="_blank">KosherJava</a> library.<br>
+    We do not take responsibility for Halachic accuracy. Use at your own risk.
 </div>
 
 <div class="modal" id="locModal">
     <div class="modal-card">
-        <h2>Change Location</h2>
-        <input type="text" id="citySearch" placeholder="Search City (e.g. Zurich)...">
-        <button class="modal-btn" onclick="searchCity()">Search</button>
-        <button class="modal-btn close-btn" onclick="closeLocModal()">Cancel</button>
+        <h2>Find City</h2>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="citySearchInput" class="modal-input" placeholder="Type city (e.g. Zurich, Lake...)" style="margin:0;">
+            <button class="modal-btn" onclick="searchCity()" style="width:auto; margin:0;">Go</button>
+        </div>
+        <div id="searchResults"></div>
+        <button class="modal-btn close-btn" onclick="closeLocModal()">Close</button>
     </div>
 </div>
 
 <div class="modal" id="dateModal">
     <div class="modal-card">
         <h2>Jump to Date</h2>
-        <input type="date" id="datePicker">
+        <input type="date" id="datePicker" class="modal-input">
         <button class="modal-btn" onclick="setDateFromPicker()">Go</button>
-        <button class="modal-btn" style="background:#48bb78;" onclick="goToday()">Go to Today</button>
+        <button class="modal-btn" style="background:#48bb78; margin-top:10px;" onclick="goToday()">Go to Today</button>
         <button class="modal-btn close-btn" onclick="document.getElementById('dateModal').classList.remove('active')">Cancel</button>
     </div>
 </div>
@@ -144,9 +143,9 @@
 <script>
     // --- STATE ---
     let currentDate = new Date();
+    // Default location
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
     
-    // Default Options
     const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', tzais:'8.5', shaa:'gra', sunset:'elev' };
 
     // --- ENGINES ---
@@ -208,7 +207,6 @@
             const n = Math.round(D - lng/360);
             const J_transit = 2451545.0 + 0.0009 + -lng/360 + n + 0.0053 * Math.sin(Solar.rad(357.5291 + 0.98560028 * (2451545.0 + 0.0009 + -lng/360 + n - 2451545))) - 0.0069 * Math.sin(Solar.rad(2 * L));
             const noonMs = (J_transit - 2440587.5) * 86400000;
-            
             const getEvent = (zenith) => {
                  const cosH = (Math.cos(Solar.rad(zenith)) - sinDec * Math.sin(Solar.rad(lat))) / (Math.cos(Math.asin(sinDec)) * Math.cos(Solar.rad(lat)));
                  if(cosH > 1 || cosH < -1) return null;
@@ -227,7 +225,7 @@
         }
     };
 
-    // --- RENDER LOGIC ---
+    // --- CONFIG ---
     const zmanimConfig = [
         { id: "alot", label: "Alos Hashachar", desc: "Dawn. Beginning of fasts.", opts: [['16.1','16.1°'],['72','72m'],['90','90m']] },
         { id: "mish", label: "Misheyakir", desc: "Earliest Talis & Tefillin.", opts: [['10.2','10.2°'],['11','11°'],['11.5','11.5°']] },
@@ -243,6 +241,62 @@
         { id: "shaa", label: "Shaa Zmanis", desc: "Length of 1 Halachic Hour.", opts: [['gra','Gra'],['mga','MGA']] }
     ];
 
+    // --- SEARCH LOGIC ---
+    async function searchCity() {
+        const query = document.getElementById('citySearchInput').value;
+        const resultDiv = document.getElementById('searchResults');
+        if(!query) return;
+        
+        resultDiv.innerHTML = '<div style="padding:10px; color:#718096;">Searching...</div>';
+        
+        try {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`);
+            const data = await res.json();
+            
+            if(!data.results || data.results.length === 0) {
+                resultDiv.innerHTML = '<div style="padding:10px; color:red;">No cities found.</div>';
+                return;
+            }
+            
+            let html = '';
+            data.results.forEach(city => {
+                const admin = city.admin1 ? city.admin1 + ', ' : '';
+                const country = city.country || '';
+                const name = city.name;
+                // Store data in data attributes
+                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${name}, ${country}', '${city.timezone}')">
+                    <span class="city-main">${name}</span>
+                    <span class="city-sub">${admin}${country}</span>
+                </button>`;
+            });
+            resultDiv.innerHTML = html;
+            
+        } catch(e) {
+            resultDiv.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>';
+        }
+    }
+
+    async function selectCity(lat, lng, name, timezone) {
+        // Fetch elevation specifically for this point
+        try {
+            const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+            const elevData = await elevRes.json();
+            const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
+            
+            // Update State
+            loc = { lat, lng, elev, tz: timezone, name };
+            
+            // Update UI
+            document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
+            closeLocModal();
+            render(); // Refresh times
+            
+        } catch(e) {
+            alert("Could not determine elevation.");
+        }
+    }
+
+    // --- RENDER ---
     function render() {
         const iso = currentDate.toISOString().split('T')[0];
         const data = Solar.calc(new Date(iso + "T12:00:00Z"), loc.lat, loc.lng, loc.elev);
@@ -361,26 +415,9 @@
     function closeLocModal() { document.getElementById('locModal').classList.remove('active'); }
     function openDateModal() { document.getElementById('datePicker').value = currentDate.toISOString().split('T')[0]; document.getElementById('dateModal').classList.add('active'); }
 
-    async function searchCity() {
-        const q = document.getElementById('citySearch').value;
-        if(!q) return;
-        try {
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
-            const data = await res.json();
-            if(data.results) {
-                const p = data.results[0];
-                loc = { lat: p.latitude, lng: p.longitude, elev: 0, tz: p.timezone || 'UTC', name: `${p.name}, ${p.country_code}` };
-                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${loc.lat}&longitude=${loc.lng}`);
-                const elevData = await elevRes.json();
-                loc.elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-                document.getElementById('locBtn').innerText = loc.name;
-                closeLocModal();
-                render();
-            } else { alert("City not found"); }
-        } catch(e) { alert("Error"); }
-    }
-
+    // Init
     render();
+    document.getElementById('locBtn').innerText = loc.name + " (" + loc.elev + "m)";
 </script>
 
 </body>
