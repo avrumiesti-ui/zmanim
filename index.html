@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile v8</title>
+    <title>Zmanim Mobile v9</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -38,8 +38,7 @@
         .zman-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
         .zman-time { font-size: 20px; font-weight: 700; color: var(--primary); font-family: "SF Mono", monospace; letter-spacing: -0.5px; line-height: 1; }
         .zman-time .sec { font-size: 12px; color: #a0aec0; }
-        .sub-label { font-size: 10px; color: #a0aec0; margin-top: 2px; }
-        
+        .sub-label { font-size: 9px; color: #a0aec0; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
         .card-select { display: block; margin-top: 4px; font-size: 10px; background: #edf2f7; border: none; padding: 2px 6px; border-radius: 4px; color: #4a5568; font-weight: 600; appearance: none; }
 
         /* GLOSSARY & FOOTER */
@@ -49,7 +48,6 @@
         .glossary-content { padding: 15px; font-size: 13px; line-height: 1.5; color: #4a5568; border-top: 1px solid var(--border); }
         .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
         .glossary-content strong:first-child { margin-top: 0; }
-        
         .disclaimer { text-align: center; font-size: 11px; color: #a0aec0; padding: 20px 15px; margin-top: 20px; border-top: 1px solid var(--border); line-height: 1.5; }
         .disclaimer a { color: var(--primary); text-decoration: none; font-weight: 600; }
 
@@ -116,7 +114,7 @@
 
 <div class="modal" id="locModal">
     <div class="modal-card">
-        <h2>Find City</h2>
+        <h2>Change Location</h2>
         <button class="modal-btn gps-btn" onclick="getUserLocation()">📍 Use My Current Location</button>
         
         <div style="margin: 15px 0; border-bottom: 1px solid #eee;"></div>
@@ -162,7 +160,6 @@
     // Default location: Lakewood
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
     
-    // Default Zmanim Options
     const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', tzais:'8.5', shaa:'gra', sunset:'elev' };
 
     // --- ENGINES ---
@@ -208,64 +205,74 @@
             else if(m==='Shevat') { if(d==15) st.name="Tu B'Shevat"; }
             else if(m.includes('Adar')) { if(d==13) st.name="Taanis Esther"; if(d==14) st.name="Purim"; }
             if(st.name === "Regular Day" && st.isShab) st.name = "Shabbos";
-            if(st.name && st.name.includes("Rosh Chodesh") && st.name.length > 12) st.name = "R.C. / " + st.name.replace("Rosh Chodesh","");
+            if(st.name && st.name.includes("Rosh Chodesh")) st.name = "Rosh Ch.";
             return st;
         }
     };
 
+    // --- NOAA SOLAR ENGINE (Corrected for Longitude) ---
     const Solar = {
         rad: d => d * (Math.PI/180), deg: r => r * (180/Math.PI),
-        // Robust Solar Calc (NOAA based) handling all longitudes
         calc: (date, lat, lng, elev) => {
-            // JD for noon at given date
-            // Note: We need to find the JD that corresponds to "Noon" on this date *at this longitude*
-            // A simple JD calc gives noon UTC.
-            // Adjustment for Longitude: 1 degree = 4 minutes.
-            const msPerDay = 86400000;
-            // Get UTC timestamp of the start of the day
-            const startOfDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+            // NOAA Algorithm
+            // J2000
+            const n = (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - 946728000000) / 86400000.0;
+            // Mean longitude (L) and anomaly (g)
+            const L = (280.460 + 0.9856474 * n) % 360;
+            const g = (357.528 + 0.9856003 * n) % 360;
+            // Ecliptic longitude (lambda)
+            const lambda = L + 1.915 * Math.sin(Solar.rad(g)) + 0.020 * Math.sin(Solar.rad(2 * g));
+            // Obliquity (epsilon)
+            const epsilon = 23.439 - 0.0000004 * n;
             
-            // Calculate approximate Noon JD for this location
-            const JD_approx = (startOfDay / msPerDay) + 2440587.5 - (lng / 360);
+            // Right Ascension (alpha) and Declination (delta)
+            const alpha = Solar.deg(Math.atan2(Math.cos(Solar.rad(epsilon)) * Math.sin(Solar.rad(lambda)), Math.cos(Solar.rad(lambda))));
+            const sinDelta = Math.sin(Solar.rad(epsilon)) * Math.sin(Solar.rad(lambda));
+            const cosDelta = Math.sqrt(1 - sinDelta * sinDelta); // cos(dec)
+            const dec = Solar.deg(Math.asin(sinDelta));
+
+            // Equation of Time (E) in minutes
+            // E = 4 * (var_y * sin(2L) - 2e * sin(g) + 4e*var_y*sin(g)*cos(2L) - 0.5*var_y*var_y*sin(4L) - 1.25*e*e*sin(2g)) ... simplified form:
+            // Using standard NOAA calc for Noon:
+            // Solar Noon (UTC) = 12 - (lng/15) - (E/60)
+            // Simplified E roughly:
+            const y = Math.tan(Solar.rad(epsilon/2)) * Math.tan(Solar.rad(epsilon/2));
+            const E_rad = y * Math.sin(2 * Solar.rad(L)) - 2 * 0.0167 * Math.sin(Solar.rad(g)) + 4 * 0.0167 * y * Math.sin(Solar.rad(g)) * Math.cos(2 * Solar.rad(L)) - 0.5 * y * y * Math.sin(4 * Solar.rad(L)) - 1.25 * 0.0167 * 0.0167 * Math.sin(2 * Solar.rad(g));
+            const E_min = Solar.deg(E_rad) * 4;
             
-            // Solar Math
-            const D = JD_approx - 2451545.0;
-            const q = (280.459 + 0.98564736 * D) % 360;
-            const g = (357.529 + 0.98560028 * D) % 360;
-            const L = (q + 1.915 * Math.sin(Solar.rad(g)) + 0.020 * Math.sin(Solar.rad(2 * g))) % 360;
-            const e = 23.439 - 0.00000036 * D;
-            const sinDec = Math.sin(Solar.rad(e)) * Math.sin(Solar.rad(L));
-            const cosDec = Math.cos(Math.asin(sinDec));
-            const RA = Math.atan2(Math.cos(Solar.rad(e)) * Math.sin(Solar.rad(L)), Math.cos(Solar.rad(L)));
+            // Solar Noon in UTC Minutes from midnight
+            const noonUTC = 720 - (4 * lng) - E_min; // 720 = 12h * 60m
             
-            const n = Math.round(D - lng/360);
-            const J_star = 2451545.0 + 0.0009 + -lng/360 + n;
-            const M = (357.5291 + 0.98560028 * (J_star - 2451545)) % 360;
-            const C = (1.9148 * Math.sin(Solar.rad(M)) + 0.0200 * Math.sin(Solar.rad(2 * M)));
-            const lam = (M + C + 102.9372 + 180) % 360;
-            const J_transit = J_star + 0.0053 * Math.sin(Solar.rad(M)) - 0.0069 * Math.sin(Solar.rad(2 * lam));
-            
-            const noonMs = (J_transit - 2440587.5) * 86400000;
-            
-            const getEvent = (zenith) => {
-                 const cosH = (Math.cos(Solar.rad(zenith)) - sinDec * Math.sin(Solar.rad(lat))) / (cosDec * Math.cos(Solar.rad(lat)));
-                 if(cosH > 1 || cosH < -1) return null;
-                 const H = Solar.deg(Math.acos(cosH));
-                 const delta = (H / 360) * 86400000;
-                 return { rise: noonMs - delta, set: noonMs + delta };
+            // Convert to ms timestamp for today
+            const baseTime = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+            const noonMs = baseTime + (noonUTC * 60000);
+
+            // Hour Angle (H) calculation for Zenith
+            // cos(H) = (sin(alt) - sin(lat)sin(dec)) / (cos(lat)cos(dec))
+            const getEvent = (zenithDeg, rise) => {
+                const alt = 90 - zenithDeg;
+                const top = Math.sin(Solar.rad(alt)) - Math.sin(Solar.rad(lat)) * sinDelta;
+                const bot = Math.cos(Solar.rad(lat)) * cosDelta;
+                const cosH = top / bot;
+                if(cosH > 1 || cosH < -1) return null;
+                const H_deg = Solar.deg(Math.acos(cosH));
+                const H_min = H_deg * 4; // 1 deg = 4 min
+                return rise ? noonMs - (H_min * 60000) : noonMs + (H_min * 60000);
             };
+
             const zElev = 90.833 + (0.0293 * Math.sqrt(elev));
             return {
                 noon: noonMs,
-                alot16: getEvent(90+16.1).rise,
-                mish10: getEvent(90+10.2).rise, mish11: getEvent(90+11).rise, mish115: getEvent(90+11.5).rise,
-                sunLevel: getEvent(90.833), sunElev: getEvent(zElev),
-                tzais85: getEvent(90+8.5).set, tzais16: getEvent(90+16.1).set
+                alot16: getEvent(90+16.1, true),
+                mish10: getEvent(90+10.2, true), mish11: getEvent(90+11, true), mish115: getEvent(90+11.5, true),
+                sunLevel: { rise: getEvent(90.833, true), set: getEvent(90.833, false) },
+                sunElev: { rise: getEvent(zElev, true), set: getEvent(zElev, false) },
+                tzais85: getEvent(90+8.5, false), tzais16: getEvent(90+16.1, false)
             };
         }
     };
 
-    // --- RENDER LOGIC ---
+    // --- CONFIG ---
     const zmanimConfig = [
         { id: "alot", label: "Alos Hashachar", desc: "Dawn. Beginning of fasts.", opts: [['16.1','16.1°'],['72','72m'],['90','90m']] },
         { id: "mish", label: "Misheyakir", desc: "Earliest Talis & Tefillin.", opts: [['10.2','10.2°'],['11','11°'],['11.5','11.5°']] },
@@ -282,7 +289,6 @@
     ];
 
     // --- SEARCH LOGIC ---
-    // Helper to check for Jerusalem
     function checkJerusalem(name) {
         if(name.toLowerCase().includes("jerusalem") || name.toLowerCase().includes("yerushalayim")) {
             opts.candles = '40';
@@ -299,7 +305,6 @@
         loc = { lat: parseFloat(lat), lng: parseFloat(lng), tz, elev: parseInt(elev), name };
         checkJerusalem(name);
         
-        // Force refresh candle dropdown
         const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
         if(cSelect) cSelect.value = opts.candles;
 
@@ -329,7 +334,6 @@
             }
             
             let filteredResults = data.results;
-            // Exclude "East Jerusalem, PS"
             filteredResults = filteredResults.filter(r => !(r.name === "East Jerusalem" && r.country_code === "PS"));
 
             if(filterRegion) {
@@ -407,8 +411,7 @@
 
     // --- RENDER ---
     function render() {
-        // Ensure input date is treated as local date for calculation context
-        const iso = currentDate.toLocaleDateString("en-CA"); // YYYY-MM-DD
+        const iso = currentDate.toISOString().split('T')[0];
         const data = Solar.calc(currentDate, loc.lat, loc.lng, loc.elev);
         const status = HebCal.getStatus(currentDate);
         
@@ -424,7 +427,7 @@
         } else { sb.style.display = "none"; }
 
         const fmt = (ms) => {
-            if(!ms) return "--:--";
+            if(!ms || isNaN(ms)) return "--:--";
             const d = new Date(ms);
             return `${d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit', timeZone:loc.tz})}<span class="sec">${d.toLocaleTimeString('en-US',{second:'2-digit',timeZone:loc.tz})}</span>`;
         };
