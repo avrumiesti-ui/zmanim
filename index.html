@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile v10</title>
+    <title>Zmanim Mobile v11</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -44,7 +44,7 @@
         /* GLOSSARY & FOOTER */
         .glossary-section { padding: 0 15px; }
         details { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; outline: none; }
         .glossary-content { padding: 15px; font-size: 13px; line-height: 1.5; color: #4a5568; border-top: 1px solid var(--border); }
         .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
         .glossary-content strong:first-child { margin-top: 0; }
@@ -75,7 +75,7 @@
 <div class="sticky-header">
     <div class="top-row">
         <h1 class="app-title">Zmanim Daily</h1>
-        <button class="loc-btn" onclick="openLocModal()" id="locBtn">Loading...</button>
+        <button class="loc-btn" onclick="openLocModal()" id="locBtn">Lakewood, NJ</button>
     </div>
     
     <div class="date-nav">
@@ -121,7 +121,7 @@
         
         <label style="font-size:12px; color:#718096; font-weight:700;">SEARCH:</label>
         <div style="display:flex; gap:5px; margin-top:5px;">
-            <input type="text" id="citySearchInput" class="modal-input" placeholder="City (e.g. Marlboro, NJ)" style="margin:0;">
+            <input type="text" id="citySearchInput" class="modal-input" placeholder="City (e.g. Mumbai, NJ)" style="margin:0;">
             <button class="modal-btn" onclick="searchCity()" style="width:auto; margin:0; background:#3182ce;">Go</button>
         </div>
         
@@ -157,7 +157,7 @@
 <script>
     // --- STATE ---
     let currentDate = new Date();
-    // Default location
+    // Default location: Lakewood
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
     
     // Default Zmanim Options
@@ -248,7 +248,7 @@
             return {
                 noon: noonMs,
                 alot16: getEvent(90+16.1, true),
-                mish10: getEvent(90+10.2, true), mish11: getEvent(90+11, true), mish115: getEvent(90+11.5, true),
+                mish10: getEvent(90+10.2, true), mish11: getEvent(90+11.0, true), mish115: getEvent(90+11.5, true),
                 sunLevel: { rise: getEvent(90.833, true), set: getEvent(90.833, false) },
                 sunElev: { rise: getEvent(zElev, true), set: getEvent(zElev, false) },
                 tzais85: getEvent(90+8.5, false), tzais16: getEvent(90+16.1, false)
@@ -288,7 +288,13 @@
         
         loc = { lat: parseFloat(lat), lng: parseFloat(lng), tz, elev: parseInt(elev), name };
         checkJerusalem(name);
-        refreshUI();
+        
+        const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
+        if(cSelect) cSelect.value = opts.candles;
+
+        updateLocationDisplay();
+        closeLocModal();
+        render();
     }
 
     async function searchCity() {
@@ -329,10 +335,10 @@
                 const admin = city.admin1 ? city.admin1 + ', ' : '';
                 const country = city.country || '';
                 const name = city.name;
-                // Escape single quotes for function call
                 const safeName = name.replace(/'/g, "\\'"); 
-                const safeAdmin = admin.replace(/'/g, "\\'");
-                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${safeName}, ${city.admin1_code || city.country_code}', '${city.timezone}')">
+                const safeCode = (city.admin1_code || city.country_code || "").replace(/'/g, "\\'");
+                // Removed timezone passed here, we fetch it explicitly later to be safe
+                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${safeName}, ${safeCode}')">
                     <span class="city-main">${name}</span>
                     <span class="city-sub">${admin}${country}</span>
                 </button>`;
@@ -344,17 +350,29 @@
         }
     }
 
-    async function selectCity(lat, lng, name, suffix, timezone) {
+    async function selectCity(lat, lng, name, suffix) {
+        // Fetch accurate Timezone AND Elevation
         try {
+            // 1. Get Elevation
             const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
             const elevData = await elevRes.json();
             const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
             
+            // 2. Get Timezone specifically for these coordinates
+            // Open-Meteo provides this in the forecast endpoint headers or we can use another simple endpoint
+            // We use the forecast endpoint just to get the timezone string relative to the coordinates
+            const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
+            const tzData = await tzRes.json();
+            const timezone = tzData.timezone || 'UTC';
+
             const fullName = `${name}, ${suffix}`;
             loc = { lat, lng, elev, tz: timezone, name: fullName };
             checkJerusalem(name);
-            refreshUI();
-        } catch(e) { alert("Could not get elevation."); }
+
+            updateLocationDisplay();
+            closeLocModal();
+            render();
+        } catch(e) { alert("Could not fetch location data."); }
     }
 
     function getUserLocation() {
@@ -365,37 +383,41 @@
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             try {
+                // Get Elevation & Timezone
+                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+                const elevData = await elevRes.json();
+                const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
+                
+                // Get Timezone explicitly
+                const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
+                const tzData = await tzRes.json();
+                const timezone = tzData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                // Get City Name
                 const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10`);
                 const revData = await revRes.json();
                 const city = revData.address.city || revData.address.town || revData.address.village || "My Location";
                 const region = revData.address.state_code || revData.address.country_code.toUpperCase();
                 const displayName = `${city}, ${region}`;
-
-                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
-                const elevData = await elevRes.json();
-                const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 
-                loc = { lat, lng, elev, tz, name: displayName };
+                loc = { lat, lng, elev, tz: timezone, name: displayName };
                 checkJerusalem(city);
-                refreshUI();
+
+                updateLocationDisplay();
+                document.querySelector('.gps-btn').innerText = "📍 Use My Current Location";
+                closeLocModal();
+                render();
             } catch(e) { alert("Error details."); }
         }, (err) => { alert("Location denied."); });
     }
 
-    function refreshUI() {
-        document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
-        
-        // Ensure dropdown matches internal state
-        const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
-        if(cSelect) cSelect.value = opts.candles;
-        
-        closeLocModal();
-        render();
+    function updateLocationDisplay() {
+        document.getElementById('locBtn').innerText = `${loc.name} (${loc.tz})`;
     }
 
+    // --- RENDER ---
     function render() {
-        const iso = currentDate.toLocaleDateString("en-CA"); // YYYY-MM-DD local
+        const iso = currentDate.toLocaleDateString("en-CA");
         const data = Solar.calc(currentDate, loc.lat, loc.lng, loc.elev);
         const status = HebCal.getStatus(currentDate);
         
@@ -413,9 +435,8 @@
         const fmt = (ms) => {
             if(!ms || isNaN(ms)) return "--:--";
             const d = new Date(ms);
-            // Ensure TimeZone is used
-            const tZ = loc.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
-            return `${d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit', timeZone:tZ})}<span class="sec">${d.toLocaleTimeString('en-US',{second:'2-digit',timeZone:tZ})}</span>`;
+            // KEY FIX: Use the specific timezone stored in 'loc'
+            return `${d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit', timeZone:loc.tz})}<span class="sec">${d.toLocaleTimeString('en-US',{second:'2-digit',timeZone:loc.tz})}</span>`;
         };
         const mins = m => m*60000;
         const rise = (opts.sunrise==='elev') ? data.sunElev.rise : data.sunLevel.rise;
@@ -528,7 +549,7 @@
     function openDateModal() { document.getElementById('datePicker').value = currentDate.toISOString().split('T')[0]; document.getElementById('dateModal').classList.add('active'); }
 
     // Init
-    document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
+    updateLocationDisplay();
     render();
 </script>
 
