@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile v9</title>
+    <title>Zmanim Mobile v10</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -13,7 +13,7 @@
         .sticky-header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 10px 15px; border-bottom: 1px solid var(--border); }
         .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .app-title { font-size: 18px; font-weight: 800; color: var(--primary); margin: 0; }
-        .loc-btn { font-size: 12px; color: #4a5568; background: #edf2f7; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); font-weight: 600; cursor: pointer; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+        .loc-btn { font-size: 11px; color: #4a5568; background: #edf2f7; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); font-weight: 600; cursor: pointer; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
         .loc-btn::before { content: "📍"; font-size: 10px; }
         
         /* DATE NAV */
@@ -44,7 +44,7 @@
         /* GLOSSARY & FOOTER */
         .glossary-section { padding: 0 15px; }
         details { background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; outline: none; }
+        summary { padding: 12px; font-size: 14px; font-weight: 600; background: #f8fafc; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
         .glossary-content { padding: 15px; font-size: 13px; line-height: 1.5; color: #4a5568; border-top: 1px solid var(--border); }
         .glossary-content strong { color: var(--primary); display: block; margin-top: 8px; }
         .glossary-content strong:first-child { margin-top: 0; }
@@ -75,7 +75,7 @@
 <div class="sticky-header">
     <div class="top-row">
         <h1 class="app-title">Zmanim Daily</h1>
-        <button class="loc-btn" onclick="openLocModal()" id="locBtn">Lakewood, NJ</button>
+        <button class="loc-btn" onclick="openLocModal()" id="locBtn">Loading...</button>
     </div>
     
     <div class="date-nav">
@@ -157,9 +157,10 @@
 <script>
     // --- STATE ---
     let currentDate = new Date();
-    // Default location: Lakewood
+    // Default location
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
     
+    // Default Zmanim Options
     const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', tzais:'8.5', shaa:'gra', sunset:'elev' };
 
     // --- ENGINES ---
@@ -205,50 +206,33 @@
             else if(m==='Shevat') { if(d==15) st.name="Tu B'Shevat"; }
             else if(m.includes('Adar')) { if(d==13) st.name="Taanis Esther"; if(d==14) st.name="Purim"; }
             if(st.name === "Regular Day" && st.isShab) st.name = "Shabbos";
-            if(st.name && st.name.includes("Rosh Chodesh")) st.name = "Rosh Ch.";
+            if(st.name && st.name.includes("Rosh Chodesh") && st.name.length > 12) st.name = "R.C. / " + st.name.replace("Rosh Chodesh","");
             return st;
         }
     };
 
-    // --- NOAA SOLAR ENGINE (Corrected for Longitude) ---
     const Solar = {
         rad: d => d * (Math.PI/180), deg: r => r * (180/Math.PI),
         calc: (date, lat, lng, elev) => {
             // NOAA Algorithm
-            // J2000
             const n = (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - 946728000000) / 86400000.0;
-            // Mean longitude (L) and anomaly (g)
             const L = (280.460 + 0.9856474 * n) % 360;
             const g = (357.528 + 0.9856003 * n) % 360;
-            // Ecliptic longitude (lambda)
             const lambda = L + 1.915 * Math.sin(Solar.rad(g)) + 0.020 * Math.sin(Solar.rad(2 * g));
-            // Obliquity (epsilon)
             const epsilon = 23.439 - 0.0000004 * n;
             
-            // Right Ascension (alpha) and Declination (delta)
-            const alpha = Solar.deg(Math.atan2(Math.cos(Solar.rad(epsilon)) * Math.sin(Solar.rad(lambda)), Math.cos(Solar.rad(lambda))));
             const sinDelta = Math.sin(Solar.rad(epsilon)) * Math.sin(Solar.rad(lambda));
-            const cosDelta = Math.sqrt(1 - sinDelta * sinDelta); // cos(dec)
+            const cosDelta = Math.sqrt(1 - sinDelta * sinDelta);
             const dec = Solar.deg(Math.asin(sinDelta));
 
-            // Equation of Time (E) in minutes
-            // E = 4 * (var_y * sin(2L) - 2e * sin(g) + 4e*var_y*sin(g)*cos(2L) - 0.5*var_y*var_y*sin(4L) - 1.25*e*e*sin(2g)) ... simplified form:
-            // Using standard NOAA calc for Noon:
-            // Solar Noon (UTC) = 12 - (lng/15) - (E/60)
-            // Simplified E roughly:
             const y = Math.tan(Solar.rad(epsilon/2)) * Math.tan(Solar.rad(epsilon/2));
             const E_rad = y * Math.sin(2 * Solar.rad(L)) - 2 * 0.0167 * Math.sin(Solar.rad(g)) + 4 * 0.0167 * y * Math.sin(Solar.rad(g)) * Math.cos(2 * Solar.rad(L)) - 0.5 * y * y * Math.sin(4 * Solar.rad(L)) - 1.25 * 0.0167 * 0.0167 * Math.sin(2 * Solar.rad(g));
             const E_min = Solar.deg(E_rad) * 4;
             
-            // Solar Noon in UTC Minutes from midnight
-            const noonUTC = 720 - (4 * lng) - E_min; // 720 = 12h * 60m
-            
-            // Convert to ms timestamp for today
+            const noonUTC = 720 - (4 * lng) - E_min;
             const baseTime = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
             const noonMs = baseTime + (noonUTC * 60000);
 
-            // Hour Angle (H) calculation for Zenith
-            // cos(H) = (sin(alt) - sin(lat)sin(dec)) / (cos(lat)cos(dec))
             const getEvent = (zenithDeg, rise) => {
                 const alt = 90 - zenithDeg;
                 const top = Math.sin(Solar.rad(alt)) - Math.sin(Solar.rad(lat)) * sinDelta;
@@ -256,7 +240,7 @@
                 const cosH = top / bot;
                 if(cosH > 1 || cosH < -1) return null;
                 const H_deg = Solar.deg(Math.acos(cosH));
-                const H_min = H_deg * 4; // 1 deg = 4 min
+                const H_min = H_deg * 4; 
                 return rise ? noonMs - (H_min * 60000) : noonMs + (H_min * 60000);
             };
 
@@ -288,7 +272,7 @@
         { id: "shaa", label: "Shaa Zmanis", desc: "Length of 1 Halachic Hour.", opts: [['gra','Gra'],['mga','MGA']] }
     ];
 
-    // --- SEARCH LOGIC ---
+    // --- LOGIC ---
     function checkJerusalem(name) {
         if(name.toLowerCase().includes("jerusalem") || name.toLowerCase().includes("yerushalayim")) {
             opts.candles = '40';
@@ -304,13 +288,7 @@
         
         loc = { lat: parseFloat(lat), lng: parseFloat(lng), tz, elev: parseInt(elev), name };
         checkJerusalem(name);
-        
-        const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
-        if(cSelect) cSelect.value = opts.candles;
-
-        document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
-        closeLocModal();
-        render();
+        refreshUI();
     }
 
     async function searchCity() {
@@ -351,7 +329,10 @@
                 const admin = city.admin1 ? city.admin1 + ', ' : '';
                 const country = city.country || '';
                 const name = city.name;
-                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${name}, ${city.admin1_code || city.country_code}', '${city.timezone}')">
+                // Escape single quotes for function call
+                const safeName = name.replace(/'/g, "\\'"); 
+                const safeAdmin = admin.replace(/'/g, "\\'");
+                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${safeName}, ${city.admin1_code || city.country_code}', '${city.timezone}')">
                     <span class="city-main">${name}</span>
                     <span class="city-sub">${admin}${country}</span>
                 </button>`;
@@ -372,10 +353,7 @@
             const fullName = `${name}, ${suffix}`;
             loc = { lat, lng, elev, tz: timezone, name: fullName };
             checkJerusalem(name);
-
-            document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
-            closeLocModal();
-            render();
+            refreshUI();
         } catch(e) { alert("Could not get elevation."); }
     }
 
@@ -400,18 +378,24 @@
                 
                 loc = { lat, lng, elev, tz, name: displayName };
                 checkJerusalem(city);
-
-                document.getElementById('locBtn').innerText = `${displayName} (${elev}m)`;
-                document.querySelector('.gps-btn').innerText = "📍 Use My Current Location";
-                closeLocModal();
-                render();
+                refreshUI();
             } catch(e) { alert("Error details."); }
         }, (err) => { alert("Location denied."); });
     }
 
-    // --- RENDER ---
+    function refreshUI() {
+        document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
+        
+        // Ensure dropdown matches internal state
+        const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
+        if(cSelect) cSelect.value = opts.candles;
+        
+        closeLocModal();
+        render();
+    }
+
     function render() {
-        const iso = currentDate.toISOString().split('T')[0];
+        const iso = currentDate.toLocaleDateString("en-CA"); // YYYY-MM-DD local
         const data = Solar.calc(currentDate, loc.lat, loc.lng, loc.elev);
         const status = HebCal.getStatus(currentDate);
         
@@ -429,7 +413,9 @@
         const fmt = (ms) => {
             if(!ms || isNaN(ms)) return "--:--";
             const d = new Date(ms);
-            return `${d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit', timeZone:loc.tz})}<span class="sec">${d.toLocaleTimeString('en-US',{second:'2-digit',timeZone:loc.tz})}</span>`;
+            // Ensure TimeZone is used
+            const tZ = loc.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+            return `${d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit', timeZone:tZ})}<span class="sec">${d.toLocaleTimeString('en-US',{second:'2-digit',timeZone:tZ})}</span>`;
         };
         const mins = m => m*60000;
         const rise = (opts.sunrise==='elev') ? data.sunElev.rise : data.sunLevel.rise;
@@ -523,12 +509,12 @@
             if(optKey==='mga') return "Early. 1.25 MGA hours before Nightfall.";
         }
         if(id==="shaa") {
-            if(optKey==='gra') return "Day is Sunrise to Sunset.";
-            if(optKey==='mga') return "Day is Dawn (Alos) to Night (Tzais).";
+            if(optKey==='gra') return "Standard Hour. (Sunset - Sunrise) / 12.";
+            if(optKey==='mga') return "Magen Avraham. (Tzais - Alos) / 12. Usually longer hours.";
         }
         if(id.includes("shema") || id.includes("tefila")) return optKey==='gra' ? "Sunrise to Sunset" : "Dawn to Nightfall";
         if(id==="alot") return optKey==='16.1' ? "Sun 16.1° below horizon" : "Fixed minutes before sunrise";
-        if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Top of mountain (Visible)" : "Sea Level (Flat)";
+        if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Visible (Mountain)" : "Sea Level (Flat)";
         if(id==="tzais") return optKey==='8.5' ? "Standard (3 Stars)" : `${optKey} mins after sunset`;
         return "";
     }
@@ -542,8 +528,8 @@
     function openDateModal() { document.getElementById('datePicker').value = currentDate.toISOString().split('T')[0]; document.getElementById('dateModal').classList.add('active'); }
 
     // Init
-    render();
     document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
+    render();
 </script>
 
 </body>
