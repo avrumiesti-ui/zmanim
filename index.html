@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zmanim Mobile v11</title>
+    <title>Zmanim Mobile v12</title>
     <style>
         :root { --primary: #2c5282; --bg: #f7fafc; --card: #ffffff; --border: #e2e8f0; --text: #2d3748; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -12,10 +12,12 @@
         /* HEADER */
         .sticky-header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 10px 15px; border-bottom: 1px solid var(--border); }
         .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .app-title { font-size: 18px; font-weight: 800; color: var(--primary); margin: 0; }
-        .loc-btn { font-size: 11px; color: #4a5568; background: #edf2f7; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); font-weight: 600; cursor: pointer; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
-        .loc-btn::before { content: "📍"; font-size: 10px; }
+        .app-title { font-size: 18px; font-weight: 800; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 8px; }
         
+        .loc-btn { font-size: 11px; color: #4a5568; background: #edf2f7; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); font-weight: 600; cursor: pointer; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+        .loc-btn::before { content: "📍"; font-size: 10px; }
+        .info-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #718096; padding: 0; }
+
         /* DATE NAV */
         .date-nav { display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; border-radius: 8px; padding: 4px; }
         .nav-btn { width: 36px; height: 36px; border: none; background: #fff; border-radius: 6px; font-size: 18px; color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; }
@@ -54,13 +56,25 @@
         /* MODALS */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 80vh; display: flex; flex-direction: column; }
-        .modal-card h2 { margin-top: 0; font-size: 18px; margin-bottom: 15px; }
+        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 85vh; display: flex; flex-direction: column; overflow-y: auto; }
+        .modal-card h2 { margin-top: 0; font-size: 18px; margin-bottom: 15px; color: var(--primary); }
         .modal-input { width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
         .modal-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 5px; }
         .gps-btn { background: #48bb78; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .close-btn { background: transparent; color: #718096; margin-top: 5px; }
         
+        /* LOCATION MODAL EXTRAS */
+        .elev-row { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; background: #f7fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .elev-row label { font-size: 12px; font-weight: 700; color: #4a5568; }
+        .elev-row input { width: 80px; padding: 6px; margin: 0; flex-grow: 1; }
+        .elev-row button { width: auto; padding: 6px 12px; margin: 0; font-size: 12px; }
+
+        /* ABOUT MODAL TEXT */
+        .about-text { font-size: 13px; line-height: 1.6; color: #2d3748; }
+        .about-text h4 { margin: 15px 0 5px 0; color: var(--primary); }
+        .about-text ul { padding-left: 20px; margin: 5px 0; }
+        .about-text li { margin-bottom: 5px; }
+
         #searchResults { overflow-y: auto; margin-top: 10px; flex-grow: 1; border-top: 1px solid #eee; max-height: 300px; }
         .city-result { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; text-align: left; background: none; width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
         .city-result:hover { background: #f7fafc; }
@@ -74,7 +88,7 @@
 
 <div class="sticky-header">
     <div class="top-row">
-        <h1 class="app-title">Zmanim Daily</h1>
+        <h1 class="app-title">Zmanim Daily <button class="info-btn" onclick="document.getElementById('aboutModal').classList.add('active')">ⓘ</button></h1>
         <button class="loc-btn" onclick="openLocModal()" id="locBtn">Lakewood, NJ</button>
     </div>
     
@@ -108,17 +122,22 @@
 <div class="glossary-section" id="glossaryList"></div>
 
 <div class="disclaimer">
-    This project uses algorithms based on the <a href="https://kosherjava.com" target="_blank">KosherJava</a> library.<br>
-    We do not take responsibility for Halachic accuracy. Use at your own risk.
+    Based on <a href="https://kosherjava.com" target="_blank">KosherJava</a> calculations. Use at your own risk.
 </div>
 
 <div class="modal" id="locModal">
     <div class="modal-card">
-        <h2>Change Location</h2>
+        <h2>Location & Elevation</h2>
         <button class="modal-btn gps-btn" onclick="getUserLocation()">📍 Use My Current Location</button>
         
         <div style="margin: 15px 0; border-bottom: 1px solid #eee;"></div>
         
+        <div class="elev-row">
+            <label>Elevation (m):</label>
+            <input type="number" id="elevInput" placeholder="0">
+            <button class="modal-btn" style="background:#4a5568" onclick="updateElevation()">Update</button>
+        </div>
+
         <label style="font-size:12px; color:#718096; font-weight:700;">SEARCH:</label>
         <div style="display:flex; gap:5px; margin-top:5px;">
             <input type="text" id="citySearchInput" class="modal-input" placeholder="City (e.g. Mumbai, NJ)" style="margin:0;">
@@ -127,7 +146,7 @@
         
         <div style="margin: 15px 0; border-bottom: 1px solid #eee;"></div>
         
-        <label style="font-size:12px; color:#718096; font-weight:700;">SAVED:</label>
+        <label style="font-size:12px; color:#718096; font-weight:700;">PRESETS:</label>
         <select id="citySelect" class="modal-input" style="margin-top:5px;" onchange="loadPreset()">
             <option value="" disabled selected>Select a city...</option>
             <option value="40.096,-74.222,America/New_York,30">Lakewood, NJ</option>
@@ -144,6 +163,29 @@
     </div>
 </div>
 
+<div class="modal" id="aboutModal">
+    <div class="modal-card">
+        <h2>About & Methodology</h2>
+        <div class="about-text">
+            <h4>1. Data Sources</h4>
+            <p>This app operates in two steps:</p>
+            <ul>
+                <li><strong>Location:</strong> When you search for a city, we query the <a href="https://open-meteo.com/" target="_blank">Open-Meteo API</a> to get the exact Latitude, Longitude, Elevation, and Timezone.</li>
+                <li><strong>Calculation:</strong> Once we have those numbers, all Zmanim are calculated <strong>locally on your device</strong>. No data is sent to a Jewish server.</li>
+            </ul>
+
+            <h4>2. The Math (Algorithm)</h4>
+            <p>We use the <strong>NOAA Algorithm</strong> to calculate the position of the sun. This is the same high-precision mathematical model used internally by the <strong>KosherJava</strong> library.</p>
+            <p>This ensures accuracy for locations worldwide (including the Eastern Hemisphere), correctly handling timezone offsets and date calculations.</p>
+
+            <h4>3. Elevation</h4>
+            <p>Elevation affects "Visual" Zmanim (Sunrise, Sunset, and Zmanim based on them like Mincha or Candles). It allows you to see the sun earlier/later.</p>
+            <p>Degree-based Zmanim (Alos 16.1°, Misheyakir 10.2°, Tzais 8.5°) are calculated based on the sun's angle below the horizon and remain unaffected by local elevation.</p>
+        </div>
+        <button class="modal-btn close-btn" onclick="document.getElementById('aboutModal').classList.remove('active')">Close</button>
+    </div>
+</div>
+
 <div class="modal" id="dateModal">
     <div class="modal-card">
         <h2>Jump to Date</h2>
@@ -157,10 +199,7 @@
 <script>
     // --- STATE ---
     let currentDate = new Date();
-    // Default location: Lakewood
     let loc = { lat: 40.096, lng: -74.222, elev: 30, tz: 'America/New_York', name: 'Lakewood, NJ' };
-    
-    // Default Zmanim Options
     const opts = { alot:'16.1', mish:'10.2', sunrise:'elev', shema:'gra', tefila:'gra', mincha:'strict', plag:'gra', candles:'18', tzais:'8.5', shaa:'gra', sunset:'elev' };
 
     // --- ENGINES ---
@@ -214,25 +253,20 @@
     const Solar = {
         rad: d => d * (Math.PI/180), deg: r => r * (180/Math.PI),
         calc: (date, lat, lng, elev) => {
-            // NOAA Algorithm
             const n = (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - 946728000000) / 86400000.0;
             const L = (280.460 + 0.9856474 * n) % 360;
             const g = (357.528 + 0.9856003 * n) % 360;
             const lambda = L + 1.915 * Math.sin(Solar.rad(g)) + 0.020 * Math.sin(Solar.rad(2 * g));
             const epsilon = 23.439 - 0.0000004 * n;
-            
             const sinDelta = Math.sin(Solar.rad(epsilon)) * Math.sin(Solar.rad(lambda));
             const cosDelta = Math.sqrt(1 - sinDelta * sinDelta);
             const dec = Solar.deg(Math.asin(sinDelta));
-
             const y = Math.tan(Solar.rad(epsilon/2)) * Math.tan(Solar.rad(epsilon/2));
             const E_rad = y * Math.sin(2 * Solar.rad(L)) - 2 * 0.0167 * Math.sin(Solar.rad(g)) + 4 * 0.0167 * y * Math.sin(Solar.rad(g)) * Math.cos(2 * Solar.rad(L)) - 0.5 * y * y * Math.sin(4 * Solar.rad(L)) - 1.25 * 0.0167 * 0.0167 * Math.sin(2 * Solar.rad(g));
             const E_min = Solar.deg(E_rad) * 4;
-            
             const noonUTC = 720 - (4 * lng) - E_min;
             const baseTime = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
             const noonMs = baseTime + (noonUTC * 60000);
-
             const getEvent = (zenithDeg, rise) => {
                 const alt = 90 - zenithDeg;
                 const top = Math.sin(Solar.rad(alt)) - Math.sin(Solar.rad(lat)) * sinDelta;
@@ -243,7 +277,6 @@
                 const H_min = H_deg * 4; 
                 return rise ? noonMs - (H_min * 60000) : noonMs + (H_min * 60000);
             };
-
             const zElev = 90.833 + (0.0293 * Math.sqrt(elev));
             return {
                 noon: noonMs,
@@ -281,45 +314,36 @@
         }
     }
 
+    function updateElevation() {
+        const inputVal = document.getElementById('elevInput').value;
+        if(inputVal !== "") {
+            loc.elev = parseInt(inputVal);
+            refreshUI();
+        }
+    }
+
     function loadPreset() {
         const val = document.getElementById('citySelect').value;
         const [lat, lng, tz, elev] = val.split(',');
         const name = document.getElementById('citySelect').options[document.getElementById('citySelect').selectedIndex].text;
-        
         loc = { lat: parseFloat(lat), lng: parseFloat(lng), tz, elev: parseInt(elev), name };
         checkJerusalem(name);
-        
-        const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
-        if(cSelect) cSelect.value = opts.candles;
-
-        updateLocationDisplay();
-        closeLocModal();
-        render();
+        refreshUI();
     }
 
     async function searchCity() {
         const query = document.getElementById('citySearchInput').value;
         const resultDiv = document.getElementById('searchResults');
         if(!query) return;
-        
         resultDiv.innerHTML = '<div style="padding:10px; color:#718096;">Searching...</div>';
-        
         let parts = query.split(/,| /).filter(s => s.trim() !== "");
         let cityName = parts[0];
         let filterRegion = parts.length > 1 ? parts.slice(1).join(" ").toLowerCase() : "";
-
         try {
             const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=20&language=en&format=json`);
             const data = await res.json();
-            
-            if(!data.results || data.results.length === 0) {
-                resultDiv.innerHTML = '<div style="padding:10px; color:red;">No cities found.</div>';
-                return;
-            }
-            
-            let filteredResults = data.results;
-            filteredResults = filteredResults.filter(r => !(r.name === "East Jerusalem" && r.country_code === "PS"));
-
+            if(!data.results || data.results.length === 0) { resultDiv.innerHTML = '<div style="padding:10px; color:red;">No cities found.</div>'; return; }
+            let filteredResults = data.results.filter(r => !(r.name === "East Jerusalem" && r.country_code === "PS"));
             if(filterRegion) {
                 filteredResults = filteredResults.filter(r => {
                     const admin = (r.admin1 || "").toLowerCase();
@@ -329,7 +353,6 @@
                 });
                 if(filteredResults.length === 0) filteredResults = data.results;
             }
-
             let html = '';
             filteredResults.forEach(city => {
                 const admin = city.admin1 ? city.admin1 + ', ' : '';
@@ -337,85 +360,64 @@
                 const name = city.name;
                 const safeName = name.replace(/'/g, "\\'"); 
                 const safeCode = (city.admin1_code || city.country_code || "").replace(/'/g, "\\'");
-                // Removed timezone passed here, we fetch it explicitly later to be safe
-                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${safeName}, ${safeCode}')">
+                html += `<button class="city-result" onclick="selectCity(${city.latitude}, ${city.longitude}, '${safeName}, ${safeCode}', '${city.timezone}')">
                     <span class="city-main">${name}</span>
-                    <span class="city-sub">${admin}${country}</span>
+                    <span class="city-sub">${admin}${country} (${city.timezone})</span>
                 </button>`;
             });
             resultDiv.innerHTML = html;
-            
-        } catch(e) {
-            resultDiv.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>';
-        }
+        } catch(e) { resultDiv.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>'; }
     }
 
-    async function selectCity(lat, lng, name, suffix) {
-        // Fetch accurate Timezone AND Elevation
+    async function selectCity(lat, lng, name, suffix, timezone) {
         try {
-            // 1. Get Elevation
             const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
             const elevData = await elevRes.json();
             const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-            
-            // 2. Get Timezone specifically for these coordinates
-            // Open-Meteo provides this in the forecast endpoint headers or we can use another simple endpoint
-            // We use the forecast endpoint just to get the timezone string relative to the coordinates
-            const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
-            const tzData = await tzRes.json();
-            const timezone = tzData.timezone || 'UTC';
-
             const fullName = `${name}, ${suffix}`;
             loc = { lat, lng, elev, tz: timezone, name: fullName };
             checkJerusalem(name);
-
-            updateLocationDisplay();
-            closeLocModal();
-            render();
-        } catch(e) { alert("Could not fetch location data."); }
+            refreshUI();
+        } catch(e) { alert("Could not get elevation."); }
     }
 
     function getUserLocation() {
         if(!navigator.geolocation) { alert("Geolocation not supported."); return; }
         document.querySelector('.gps-btn').innerText = "Locating...";
-        
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             try {
-                // Get Elevation & Timezone
-                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
-                const elevData = await elevRes.json();
-                const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
-                
-                // Get Timezone explicitly
-                const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
-                const tzData = await tzRes.json();
-                const timezone = tzData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-                // Get City Name
                 const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10`);
                 const revData = await revRes.json();
                 const city = revData.address.city || revData.address.town || revData.address.village || "My Location";
                 const region = revData.address.state_code || revData.address.country_code.toUpperCase();
                 const displayName = `${city}, ${region}`;
+                const elevRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+                const elevData = await elevRes.json();
+                const elev = elevData.elevation ? Math.round(elevData.elevation[0]) : 0;
+                // Auto-detect timezone based on coords
+                const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
+                const tzData = await tzRes.json();
+                const timezone = tzData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
                 
                 loc = { lat, lng, elev, tz: timezone, name: displayName };
                 checkJerusalem(city);
-
-                updateLocationDisplay();
+                refreshUI();
                 document.querySelector('.gps-btn').innerText = "📍 Use My Current Location";
-                closeLocModal();
-                render();
             } catch(e) { alert("Error details."); }
         }, (err) => { alert("Location denied."); });
     }
 
-    function updateLocationDisplay() {
-        document.getElementById('locBtn').innerText = `${loc.name} (${loc.tz})`;
+    function refreshUI() {
+        document.getElementById('locBtn').innerText = `${loc.name} (${loc.elev}m)`;
+        document.getElementById('elevInput').value = loc.elev; // Sync input
+        const cSelect = document.querySelector(`select[onchange="changeOption('candles', this.value)"]`);
+        if(cSelect) cSelect.value = opts.candles;
+        closeLocModal();
+        render();
     }
 
-    // --- RENDER ---
     function render() {
         const iso = currentDate.toLocaleDateString("en-CA");
         const data = Solar.calc(currentDate, loc.lat, loc.lng, loc.elev);
@@ -435,7 +437,6 @@
         const fmt = (ms) => {
             if(!ms || isNaN(ms)) return "--:--";
             const d = new Date(ms);
-            // KEY FIX: Use the specific timezone stored in 'loc'
             return `${d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit', timeZone:loc.tz})}<span class="sec">${d.toLocaleTimeString('en-US',{second:'2-digit',timeZone:loc.tz})}</span>`;
         };
         const mins = m => m*60000;
@@ -521,9 +522,9 @@
 
     function getGlossaryDesc(id, optKey) {
         if(id==="mish") {
-            if(optKey==='10.2') return "Standard (10.2° below).";
-            if(optKey==='11') return "Earlier (11°).";
-            if(optKey==='11.5') return "Earliest (11.5°).";
+            if(optKey==='10.2') return "Standard opinion (10.2°).";
+            if(optKey==='11') return "Slightly earlier opinion (11°).";
+            if(optKey==='11.5') return "Earliest opinion (11.5°). Used when necessary.";
         }
         if(id==="plag") {
             if(optKey==='gra') return "Standard. 1.25 hours before Sunset.";
@@ -535,7 +536,7 @@
         }
         if(id.includes("shema") || id.includes("tefila")) return optKey==='gra' ? "Sunrise to Sunset" : "Dawn to Nightfall";
         if(id==="alot") return optKey==='16.1' ? "Sun 16.1° below horizon" : "Fixed minutes before sunrise";
-        if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Visible (Mountain)" : "Sea Level (Flat)";
+        if(id==="sunrise" || id==="sunset") return optKey==='elev' ? "Top of mountain (Visible)" : "Sea Level (Flat)";
         if(id==="tzais") return optKey==='8.5' ? "Standard (3 Stars)" : `${optKey} mins after sunset`;
         return "";
     }
@@ -549,8 +550,7 @@
     function openDateModal() { document.getElementById('datePicker').value = currentDate.toISOString().split('T')[0]; document.getElementById('dateModal').classList.add('active'); }
 
     // Init
-    updateLocationDisplay();
-    render();
+    refreshUI();
 </script>
 
 </body>
